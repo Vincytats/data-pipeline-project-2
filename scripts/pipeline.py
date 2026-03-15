@@ -1,7 +1,5 @@
 import pandas as pd
 import numpy as np
-import requests
-from datetime import datetime
 
 # -----------------------------
 # GOOGLE SHEET LINKS
@@ -22,6 +20,13 @@ print("Datasets downloaded")
 
 
 # -----------------------------
+# CLEAN COLUMN NAMES
+# -----------------------------
+
+participant_df.columns = participant_df.columns.str.strip().str.replace("\n", " ")
+resignation_df.columns = resignation_df.columns.str.strip().str.replace("\n", " ")
+
+# -----------------------------
 # STANDARDIZE ID COLUMN
 # -----------------------------
 
@@ -39,7 +44,6 @@ resignation_df["ID Number"] = (
     .str.strip()
 )
 
-
 # -----------------------------
 # DATE FORMATTING
 # -----------------------------
@@ -53,9 +57,8 @@ participant_df["Participant End Date"] = pd.to_datetime(
 )
 
 resignation_df["Resignation Date"] = pd.to_datetime(
-    resignation_df["Resignation Date\n\n(actual IP date)"], errors="coerce"
+    resignation_df["Resignation Date (actual IP date)"], errors="coerce"
 )
-
 
 # -----------------------------
 # MERGE DATA
@@ -69,13 +72,11 @@ merged = participant_df.merge(
 
 print("Datasets merged")
 
-
 # -----------------------------
 # CALCULATE ACTUAL STAY MONTHS
 # -----------------------------
 
 today = pd.Timestamp.today()
-
 
 def calculate_stay(row):
 
@@ -103,7 +104,7 @@ merged["Actual Stay(Months)"] = merged.apply(calculate_stay, axis=1)
 
 
 # -----------------------------
-# ATTRITION RATE CALCULATION
+# ATTRITION RATE
 # -----------------------------
 
 total_participants = len(resignation_df)
@@ -118,24 +119,7 @@ merged["Attrition Rate"] = round(attrition_rate, 2)
 
 
 # -----------------------------
-# RENAME FIELDS
-# -----------------------------
-
-merged.rename(
-    columns={
-        "Organization's Name": "Organisation's name",
-        "Status of UI - 19\n\n(TLT Admin Field)": "Status of UI-19(TLT Admin Field)",
-        "Reason for Resignation": "Reason for resignation",
-        "Participant Age-Group\n\n[Automated Field- No Input Required]": "Participant Age Group",
-        "Gender": "Gender",
-        "Exit survey shared with participant?": "Participant completed the exit survey?"
-    },
-    inplace=True
-)
-
-
-# -----------------------------
-# SELECT REQUIRED COLUMNS
+# FINAL COLUMNS
 # -----------------------------
 
 final_columns = [
@@ -152,7 +136,6 @@ final_columns = [
 ]
 
 final_df = merged[final_columns]
-
 
 # -----------------------------
 # EXPORT CSV
