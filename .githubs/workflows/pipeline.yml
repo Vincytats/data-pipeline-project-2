@@ -1,1 +1,40 @@
+name: Data Pipeline
 
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 5 * * *'   # runs daily
+
+jobs:
+
+  run-pipeline:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        pip install pandas numpy requests
+
+    - name: Run pipeline
+      run: python scripts/pipeline.py
+
+    - name: Commit updated dataset
+      run: |
+        git config --global user.name "github-actions"
+        git config --global user.email "actions@github.com"
+
+        git add processed_attrition_dataset.csv
+
+        git commit -m "Update attrition dataset" || echo "No changes to commit"
+
+        git push
