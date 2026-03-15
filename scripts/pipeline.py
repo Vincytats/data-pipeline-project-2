@@ -145,7 +145,6 @@ merged = participant_df.merge(
 
 logging.info("Datasets merged")
 
-
 # -----------------------------
 # ACTUAL STAY MONTHS
 # -----------------------------
@@ -158,14 +157,15 @@ end_date = merged["Resignation Date"].fillna(
 
 start_date = merged["Participant Start Date"]
 
-end_date = np.where(end_date < start_date, start_date, end_date)
-
-merged["Actual Stay(Months)"] = (
-    (pd.to_datetime(end_date).dt.year - start_date.dt.year) * 12 +
-    (pd.to_datetime(end_date).dt.month - start_date.dt.month)
+end_date = pd.Series(
+    np.where(end_date < start_date, start_date, end_date),
+    index=merged.index
 )
 
-
+merged["Actual Stay(Months)"] = (
+    (end_date.dt.year - start_date.dt.year) * 12 +
+    (end_date.dt.month - start_date.dt.month)
+)
 # -----------------------------
 # ATTRITION RATE
 # -----------------------------
