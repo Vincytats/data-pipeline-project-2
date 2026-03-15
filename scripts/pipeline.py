@@ -188,7 +188,7 @@ merged["Attrition Rate"] = round(attrition_rate, 2)
 # -----------------------------
 
 gender_col = find_column(merged, ["gender"])
-age_col = find_column(merged, ["age"])
+age_col = find_column(merged, ["age-group"])
 reason_col = find_column(merged, ["reason"])
 survey_col = find_column(merged, ["survey"])
 uif_col = find_column(merged, ["ui"])
