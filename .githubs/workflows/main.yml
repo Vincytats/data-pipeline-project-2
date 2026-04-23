@@ -23,11 +23,9 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install pandas numpy requests
 
-      - name: Check installed packages
-        run: python -m pip list
-
       - name: Run pipeline
         env:
+          # Azure / SharePoint auth
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
