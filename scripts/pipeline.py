@@ -261,7 +261,6 @@ def upload_to_sharepoint(file_path):
     headers = {
         "Authorization": f"Bearer {token}"
     }
-
     # Get site
     site = requests.get(
         "https://graph.microsoft.com/v1.0/sites/thelearningtrust.sharepoint.com:/sites/TheLearningTrust",
