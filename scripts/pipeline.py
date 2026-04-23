@@ -18,7 +18,7 @@ resignation_sheet = "18oOQZaVBgZDQSFLKz5JtpExsjDMydJPHG8LN1gfBsU4"
 participant_url = f"https://docs.google.com/spreadsheets/d/{participant_sheet}/export?format=csv"
 resignation_url = f"https://docs.google.com/spreadsheets/d/{resignation_sheet}/export?format=csv"
 
-OUTPUT_FILE = "processed_attrition_dataset.csv"
+OUTPUT_FILE = "Resignation Profiling Dataset.csv"
 
 # ==============================
 # DOWNLOAD DATA
