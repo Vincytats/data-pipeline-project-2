@@ -3,7 +3,6 @@ import numpy as np
 import logging
 import requests
 import os
-from io import StringIO
 
 logging.basicConfig(level=logging.INFO)
 
@@ -48,22 +47,16 @@ def normalize_columns(df):
 participant_df = normalize_columns(participant_df)
 resignation_df = normalize_columns(resignation_df)
 
-logging.info("Columns normalized")
-
 # ==============================
-# FIND COLUMN FUNCTION
+# FIND COLUMN
 # ==============================
 
 def find_column(df, keywords):
     for col in df.columns:
-        name = col.lower()
-        if all(word in name for word in keywords):
+        c = col.lower()
+        if all(word in c for word in keywords):
             return col
     raise ValueError(f"Column containing {keywords} not found")
-
-# ==============================
-# DETECT COLUMNS
-# ==============================
 
 participant_id_col = find_column(participant_df, ["id"])
 resignation_id_col = find_column(resignation_df, ["id"])
@@ -71,8 +64,6 @@ resignation_id_col = find_column(resignation_df, ["id"])
 start_date_col = find_column(participant_df, ["start", "date"])
 end_date_col = find_column(participant_df, ["end", "date"])
 resignation_date_col = find_column(resignation_df, ["resignation", "date"])
-
-logging.info("Important columns detected")
 
 # ==============================
 # CLEAN IDS
@@ -89,14 +80,10 @@ def clean_id(series):
 participant_df["ID Number"] = clean_id(participant_df[participant_id_col])
 resignation_df["ID Number"] = clean_id(resignation_df[resignation_id_col])
 
-# ==============================
-# REMOVE DUPLICATES
-# ==============================
-
 participant_df = participant_df.drop_duplicates(subset=["ID Number"])
 
 # ==============================
-# DATE CONVERSION
+# DATES
 # ==============================
 
 participant_df["Participant Start Date"] = pd.to_datetime(
@@ -120,8 +107,6 @@ merged = participant_df.merge(
     on="ID Number",
     how="left"
 )
-
-logging.info("Datasets merged")
 
 # ==============================
 # STAY MONTHS
@@ -162,7 +147,7 @@ attrition_rate = (len(resigned) / total) * 100 if total else 0
 merged["Attrition Rate"] = round(attrition_rate, 2)
 
 # ==============================
-# DETECT OTHER COLUMNS
+# OTHER COLUMNS
 # ==============================
 
 gender_col = find_column(merged, ["gender"])
@@ -194,16 +179,12 @@ final_df = pd.DataFrame({
     "Organisation's name": merged[org_col]
 })
 
-# ==============================
-# SAVE CSV
-# ==============================
-
 final_df.to_csv(OUTPUT_FILE, index=False)
 
 logging.info("CSV created successfully")
 
 # ==============================
-# AUTH TOKEN
+# GET ACCESS TOKEN
 # ==============================
 
 def get_access_token():
@@ -217,63 +198,59 @@ def get_access_token():
     }
 
     r = requests.post(url, data=data)
-    token_data = r.json()
+    r.raise_for_status()
 
-    print("TOKEN RESPONSE:", token_data)
-
-    if "access_token" not in token_data:
-        raise Exception(f"Token error: {token_data}")
-
-    return token_data["access_token"]
+    return r.json()["access_token"]
 
 # ==============================
 # UPLOAD TO SHAREPOINT
 # ==============================
 
 def upload_to_sharepoint(file_path):
-    logging.info("Uploading to SharePoint (correct folder)...")
+
+    logging.info("Uploading to SharePoint...")
 
     token = get_access_token()
 
     headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/octet-stream"
+        "Authorization": f"Bearer {token}"
     }
 
-    # GET SITE
-    site_url = "https://graph.microsoft.com/v1.0/sites/thelearningtrust.sharepoint.com:/sites/TheLearningTrust"
-    site = requests.get(site_url, headers=headers).json()
+    # Get Site
+    site = requests.get(
+        "https://graph.microsoft.com/v1.0/sites/thelearningtrust.sharepoint.com:/sites/TheLearningTrust",
+        headers=headers
+    )
+    site.raise_for_status()
+    site_id = site.json()["id"]
 
-    print("SITE:", site)
-
-    site_id = site["id"]
-
-    # GET DRIVE
+    # Get Drive
     drive = requests.get(
         f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive",
         headers=headers
-    ).json()
-
-    print("DRIVE:", drive)
-
-    drive_id = drive["id"]
+    )
+    drive.raise_for_status()
+    drive_id = drive.json()["id"]
 
     file_name = os.path.basename(file_path)
 
-    # 🔥 IMPORTANT
-    folder_path = "Consolidated%20data"
-
-    upload_url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root:/{folder_path}/{file_name}:/content"
-
-    print("UPLOAD URL:", upload_url)
+    # Upload to Consolidated data folder
+    upload_url = (
+        f"https://graph.microsoft.com/v1.0/drives/{drive_id}"
+        f"/root:/Consolidated data/{file_name}:/content"
+    )
 
     with open(file_path, "rb") as f:
-        res = requests.put(upload_url, headers=headers, data=f)
+        res = requests.put(
+            upload_url,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "text/csv"
+            },
+            data=f
+        )
 
-    print("UPLOAD RESPONSE:", res.text)
-
-    if res.status_code not in [200, 201]:
-        raise Exception(f"Upload failed: {res.text}")
+    res.raise_for_status()
 
     logging.info("✅ Upload successful")
 
