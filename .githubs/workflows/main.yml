@@ -18,14 +18,20 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install pandas numpy requests
+          pip install pandas
+          pip install numpy
+          pip install requests
+
+      - name: Verify packages
+        run: pip list
 
       - name: Run pipeline
         env:
-          # Azure / SharePoint auth
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
