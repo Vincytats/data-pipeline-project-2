@@ -59,7 +59,7 @@ def find_column(df, keywords):
         c = col.lower()
         if all(word in c for word in keywords):
             return col
-    raise ValueError(f"Column containing {keywords} not found in {list(df.columns)}")
+    raise ValueError(f"Column containing {keywords} not found")
 
 # ==============================
 # DETECT IMPORTANT COLUMNS
@@ -248,18 +248,12 @@ def get_access_token():
     return r.json()["access_token"]
 
 # ==============================
-# UPLOAD TO SHAREPOINT
+# GET DRIVE ID
 # ==============================
 
-def upload_to_sharepoint(file_path):
+def get_drive_id(token):
 
-    logging.info("Uploading resignation dataset to SharePoint...")
-
-    token = get_access_token()
-
-    headers = {
-        "Authorization": f"Bearer {token}"
-    }
+    headers = {"Authorization": f"Bearer {token}"}
 
     site = requests.get(
         "https://graph.microsoft.com/v1.0/sites/thelearningtrust.sharepoint.com:/sites/TheLearningTrust",
@@ -273,7 +267,19 @@ def upload_to_sharepoint(file_path):
         headers=headers
     )
     drive.raise_for_status()
-    drive_id = drive.json()["id"]
+
+    return drive.json()["id"]
+
+# ==============================
+# UPLOAD RESIGNATION FILE
+# ==============================
+
+def upload_to_sharepoint(file_path):
+
+    logging.info("Uploading resignation dataset to SharePoint...")
+
+    token = get_access_token()
+    drive_id = get_drive_id(token)
 
     file_name = os.path.basename(file_path)
 
@@ -297,7 +303,7 @@ def upload_to_sharepoint(file_path):
     logging.info("✅ Resignation dataset uploaded successfully")
 
 # ==============================
-# UPLOAD PARTICIPANT LIST AS-IS
+# UPLOAD PARTICIPANT LIST AS CSV
 # ==============================
 
 def upload_participant_list():
@@ -315,33 +321,17 @@ def upload_participant_list():
 
     participant_raw = participant_raw.fillna("")
 
-    participant_file = "Participant List.xlsx"
+    participant_file = "Participant List.csv"
 
-    participant_raw.to_excel(participant_file, index=False)
+    # CSV avoids openpyxl dependency
+    participant_raw.to_csv(participant_file, index=False)
 
     token = get_access_token()
-
-    headers = {
-        "Authorization": f"Bearer {token}"
-    }
-
-    site = requests.get(
-        "https://graph.microsoft.com/v1.0/sites/thelearningtrust.sharepoint.com:/sites/TheLearningTrust",
-        headers=headers
-    )
-    site.raise_for_status()
-    site_id = site.json()["id"]
-
-    drive = requests.get(
-        f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive",
-        headers=headers
-    )
-    drive.raise_for_status()
-    drive_id = drive.json()["id"]
+    drive_id = get_drive_id(token)
 
     upload_url = (
         f"https://graph.microsoft.com/v1.0/drives/{drive_id}"
-        f"/root:/Consolidated data/Participant List.xlsx:/content"
+        f"/root:/Consolidated data/Participant List.csv:/content"
     )
 
     with open(participant_file, "rb") as f:
@@ -349,7 +339,7 @@ def upload_participant_list():
             upload_url,
             headers={
                 "Authorization": f"Bearer {token}",
-                "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                "Content-Type": "text/csv"
             },
             data=f
         )
