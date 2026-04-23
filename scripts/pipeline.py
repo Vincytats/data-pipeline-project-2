@@ -199,7 +199,6 @@ for col in merged.columns:
         org_col = col
         break
 
-# fallback if not found
 if not reason_col:
     merged["Reason for resignation"] = None
     reason_col = "Reason for resignation"
@@ -254,14 +253,14 @@ def get_access_token():
 
 def upload_to_sharepoint(file_path):
 
-    logging.info("Uploading to SharePoint...")
+    logging.info("Uploading resignation dataset to SharePoint...")
 
     token = get_access_token()
 
     headers = {
         "Authorization": f"Bearer {token}"
     }
-    # Get site
+
     site = requests.get(
         "https://graph.microsoft.com/v1.0/sites/thelearningtrust.sharepoint.com:/sites/TheLearningTrust",
         headers=headers
@@ -269,7 +268,6 @@ def upload_to_sharepoint(file_path):
     site.raise_for_status()
     site_id = site.json()["id"]
 
-    # Get drive
     drive = requests.get(
         f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive",
         headers=headers
@@ -296,12 +294,76 @@ def upload_to_sharepoint(file_path):
 
     res.raise_for_status()
 
-    logging.info("✅ Upload successful")
+    logging.info("✅ Resignation dataset uploaded successfully")
+
+# ==============================
+# UPLOAD PARTICIPANT LIST AS-IS
+# ==============================
+
+def upload_participant_list():
+
+    logging.info("Creating Participant List file...")
+
+    participant_raw = pd.read_csv(participant_url, dtype=str)
+
+    participant_raw.columns = (
+        participant_raw.columns.astype(str)
+        .str.strip()
+        .str.replace("\n", " ", regex=False)
+        .str.replace(r"\s+", " ", regex=True)
+    )
+
+    participant_raw = participant_raw.fillna("")
+
+    participant_file = "Participant List.xlsx"
+
+    participant_raw.to_excel(participant_file, index=False)
+
+    token = get_access_token()
+
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    site = requests.get(
+        "https://graph.microsoft.com/v1.0/sites/thelearningtrust.sharepoint.com:/sites/TheLearningTrust",
+        headers=headers
+    )
+    site.raise_for_status()
+    site_id = site.json()["id"]
+
+    drive = requests.get(
+        f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive",
+        headers=headers
+    )
+    drive.raise_for_status()
+    drive_id = drive.json()["id"]
+
+    upload_url = (
+        f"https://graph.microsoft.com/v1.0/drives/{drive_id}"
+        f"/root:/Consolidated data/Participant List.xlsx:/content"
+    )
+
+    with open(participant_file, "rb") as f:
+        res = requests.put(
+            upload_url,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            },
+            data=f
+        )
+
+    res.raise_for_status()
+
+    logging.info("✅ Participant List uploaded successfully")
 
 # ==============================
 # RUN
 # ==============================
 
 upload_to_sharepoint(OUTPUT_FILE)
+
+upload_participant_list()
 
 logging.info("🎉 PIPELINE COMPLETE")
