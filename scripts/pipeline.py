@@ -224,9 +224,9 @@ final_df = pd.DataFrame({
 
 final_df["ID Number"] = final_df["ID Number"].astype(str)
 
-final_df.to_csv(OUTPUT_FILE, index=False)
+final_df.to_excel(OUTPUT_FILE, index=False, engine="openpyxl")
 
-logging.info("CSV created successfully")
+logging.info("File created successfully")
 
 # ==============================
 # GET ACCESS TOKEN
