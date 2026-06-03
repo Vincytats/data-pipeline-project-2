@@ -303,12 +303,14 @@ def upload_to_sharepoint(file_path):
     logging.info("✅ Resignation dataset uploaded successfully")
 
 # ==============================
-# UPLOAD PARTICIPANT LIST AS CSV
+# UPLOAD PARTICIPANT LIST AS XLSX
 # ==============================
+
+from openpyxl import load_workbook
 
 def upload_participant_list():
 
-    logging.info("Creating Participant List file...")
+    logging.info("Creating Participant List Excel file...")
 
     participant_raw = pd.read_csv(participant_url, dtype=str)
 
@@ -321,17 +323,43 @@ def upload_participant_list():
 
     participant_raw = participant_raw.fillna("")
 
-    participant_file = "Participant List.csv"
+    participant_file = "Participant List.xlsx"
 
-    # CSV avoids openpyxl dependency
-    participant_raw.to_csv(participant_file, index=False)
+    # Write Excel file
+    participant_raw.to_excel(
+        participant_file,
+        index=False,
+        engine="openpyxl"
+    )
+
+    # Force all ID-related columns to Text format
+    wb = load_workbook(participant_file)
+    ws = wb.active
+
+    id_columns = [
+        "ID number/Non SA Passport",
+        "Passport Number/Assylumn Number",
+        "Income Tax Number"
+    ]
+
+    for col_idx, cell in enumerate(ws[1], start=1):
+        if str(cell.value).strip() in id_columns:
+
+            for row in range(2, ws.max_row + 1):
+                target = ws.cell(row=row, column=col_idx)
+
+                if target.value is not None:
+                    target.number_format = "@"
+                    target.value = str(target.value)
+
+    wb.save(participant_file)
 
     token = get_access_token()
     drive_id = get_drive_id(token)
 
     upload_url = (
         f"https://graph.microsoft.com/v1.0/drives/{drive_id}"
-        f"/root:/Consolidated data/Participant List.csv:/content"
+        f"/root:/Consolidated data/Participant List.xlsx:/content"
     )
 
     with open(participant_file, "rb") as f:
@@ -339,15 +367,14 @@ def upload_participant_list():
             upload_url,
             headers={
                 "Authorization": f"Bearer {token}",
-                "Content-Type": "text/csv"
+                "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             },
             data=f
         )
 
     res.raise_for_status()
 
-    logging.info("✅ Participant List uploaded successfully")
-
+    logging.info("✅ Participant List.xlsx uploaded successfully")
 # ==============================
 # RUN
 # ==============================
