@@ -26,8 +26,8 @@ OUTPUT_FILE = "Resignation Profiling Dataset.csv"
 
 logging.info("Downloading datasets")
 
-participant_df = pd.read_csv(participant_url)
-resignation_df = pd.read_csv(resignation_url)
+participant_df = pd.read_csv(participant_url, dtype=str)
+resignation_df = pd.read_csv(resignation_url, dtype=str)
 
 logging.info("Datasets downloaded")
 
@@ -80,10 +80,10 @@ status_col = find_column(resignation_df, ["status"])
 
 def clean_id(series):
     return (
-        series.astype(str)
-        .str.replace(".0", "", regex=False)
-        .str.replace(" ", "")
+        series.fillna("")
+        .astype(str)
         .str.strip()
+        .str.replace(" ", "", regex=False)
     )
 
 participant_df["ID Number"] = clean_id(participant_df[participant_id_col])
@@ -210,7 +210,6 @@ if not survey_col:
 # ==============================
 # FINAL DATASET
 # ==============================
-
 final_df = pd.DataFrame({
     "Gender": merged[gender_col],
     "ID Number": merged["ID Number"],
@@ -223,6 +222,8 @@ final_df = pd.DataFrame({
     "Actual Stay(Months)": merged["Actual Stay(Months)"],
     "Organisation's name": merged[org_col] if org_col else None
 })
+
+final_df["ID Number"] = final_df["ID Number"].astype(str)
 
 final_df.to_csv(OUTPUT_FILE, index=False)
 
