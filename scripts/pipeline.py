@@ -19,14 +19,6 @@ participant_url = f"https://docs.google.com/spreadsheets/d/{participant_sheet}/e
 resignation_url = f"https://docs.google.com/spreadsheets/d/{resignation_sheet}/export?format=csv"
 
 OUTPUT_FILE = "Consolidated Resignation Profiling Dataset.xlsx"
-with pd.ExcelWriter(OUTPUT_FILE, engine="openpyxl") as writer:
-    final_df.to_excel(writer, index=False, sheet_name="Data")
-
-    ws = writer.sheets["Data"]
-
-    for cell in ws["B"]:
-        cell.number_format = "@"
-
 # ==============================
 # DOWNLOAD DATA
 # ==============================
