@@ -300,46 +300,26 @@ def update_workbook(workbook_name, outputs):
 
     for _, row in outputs.iterrows():
 
-        ip_name = row["IP Name"]
+    ip_name = row["IP Name"]
 
-        target_rows = sheet1[
-            outputs_mask &
-            (
-                sheet1["IP Name"]
-                .astype(str)
-                .str.strip()
-                .eq(ip_name)
-            )
-        ].index
+    print(f"\nLooking for: [{ip_name}]")
 
-        if len(target_rows) == 0:
-            continue
-
-        idx = target_rows[0]
-
-        for col in outputs.columns:
-
-            if col in ["IP Name", "Criteria"]:
-                continue
-
-            if col in sheet1.columns:
-
-                sheet1.loc[idx, col] = row[col]
-
-    with pd.ExcelWriter(
-        workbook_name,
-        engine="openpyxl",
-        mode="a",
-        if_sheet_exists="replace"
-    ) as writer:
-
-        sheet1.to_excel(
-            writer,
-            sheet_name="Sheet1",
-            index=False
+    target_rows = sheet1[
+        outputs_mask &
+        (
+            sheet1["IP Name"]
+            .astype(str)
+            .str.strip()
+            .str.upper()
+            .eq(str(ip_name).strip().upper())
         )
+    ].index
 
-    print("✅ Workbook updated")
+    if len(target_rows) == 0:
+        print(f"❌ NO MATCH FOUND: {ip_name}")
+        continue
+
+    print(f"✅ MATCH FOUND: {ip_name}")
 
 
 # =====================================
