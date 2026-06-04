@@ -93,35 +93,37 @@ def download_from_sharepoint(filename):
     }
 
     search_url = (
-    f"https://graph.microsoft.com/v1.0/drives/{drive_id}"
-    f"/root:/Consolidated data:/children"
-)
+        f"https://graph.microsoft.com/v1.0/drives/{drive_id}"
+        f"/root:/Consolidated data:/children"
+    )
 
-res = requests.get(search_url, headers=headers)
-res.raise_for_status()
+    res = requests.get(search_url, headers=headers)
+    res.raise_for_status()
 
-file_id = None
+    file_id = None
 
-for item in res.json()["value"]:
-    if item["name"] == filename:
-        file_id = item["id"]
-        break
+    for item in res.json()["value"]:
+        print("FOUND:", item["name"])
 
-if not file_id:
-    raise Exception(f"{filename} not found")
+        if item["name"].strip() == filename.strip():
+            file_id = item["id"]
+            break
 
-download_url = (
-    f"https://graph.microsoft.com/v1.0/drives/{drive_id}"
-    f"/items/{file_id}/content"
-)
+    if not file_id:
+        raise Exception(f"{filename} not found")
 
-r = requests.get(download_url, headers=headers)
-r.raise_for_status()
+    download_url = (
+        f"https://graph.microsoft.com/v1.0/drives/{drive_id}"
+        f"/items/{file_id}/content"
+    )
 
-with open(filename, "wb") as f:
-    f.write(r.content)
+    r = requests.get(download_url, headers=headers)
+    r.raise_for_status()
 
-print(f"✅ Downloaded {filename}")
+    with open(filename, "wb") as f:
+        f.write(r.content)
+
+    print(f"✅ Downloaded {filename}")
 # =====================================
 # UPLOAD WORKBOOK
 # =====================================
