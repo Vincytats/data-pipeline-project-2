@@ -194,6 +194,7 @@ def load_mappings(workbook_name):
             ] = str(target).strip()
 
     return ip_mapping, indicator_mapping
+    print(mapping_df.head(30).to_string())
 
 
 # =====================================
