@@ -299,21 +299,7 @@ def build_outputs(ip_mapping, indicator_mapping):
 # UPDATE WORKBOOK
 # =====================================
 
-def update_workbook(workbook_name, outputs):
-
-    sheet1 = pd.read_excel(
-        workbook_name,
-        sheet_name="Sheet1"
-    )
-
-    outputs_mask = (
-        sheet1["Criteria"]
-        .astype(str)
-        .str.strip()
-        .eq("Outputs")
-    )
-
-    for _, row in outputs.iterrows():
+for _, row in outputs.iterrows():
 
     ip_name = row["IP Name"]
 
@@ -336,6 +322,15 @@ def update_workbook(workbook_name, outputs):
 
     print(f"✅ MATCH FOUND: {ip_name}")
 
+    idx = target_rows[0]
+
+    for col in outputs.columns:
+
+        if col in ["IP Name", "Criteria"]:
+            continue
+
+        if col in sheet1.columns:
+            sheet1.loc[idx, col] = row[col]
 
 # =====================================
 # MAIN
