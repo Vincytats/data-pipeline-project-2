@@ -92,10 +92,28 @@ def download_from_sharepoint(filename):
         "Authorization": f"Bearer {token}"
     }
 
-    download_url = (
-        f"https://graph.microsoft.com/v1.0/drives/{drive_id}"
-        f"/root:/Consolidated data/{filename}:/content"
-    )
+    search_url = (
+    f"https://graph.microsoft.com/v1.0/drives/{drive_id}"
+    f"/root:/Consolidated data:/children"
+)
+
+res = requests.get(search_url, headers=headers)
+res.raise_for_status()
+
+file_id = None
+
+for item in res.json()["value"]:
+    if item["name"] == filename:
+        file_id = item["id"]
+        break
+
+if not file_id:
+    raise Exception(f"{filename} not found")
+
+download_url = (
+    f"https://graph.microsoft.com/v1.0/drives/{drive_id}"
+    f"/items/{file_id}/content"
+)
 
     r = requests.get(download_url, headers=headers)
     r.raise_for_status()
