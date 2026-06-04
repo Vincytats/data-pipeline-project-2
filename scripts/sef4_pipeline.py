@@ -209,83 +209,101 @@ def load_mappings(workbook_name):
 
 def build_outputs(ip_mapping, indicator_mapping):
 
-    monthly_url = (
-        f"https://docs.google.com/spreadsheets/d/"
-        f"{MONTHLY_REPORT_ID}/export?format=xlsx"
-    )
+```
+monthly_url = (
+    f"https://docs.google.com/spreadsheets/d/"
+    f"{MONTHLY_REPORT_ID}/export?format=xlsx"
+)
 
-    raw = pd.read_excel(
-        monthly_url,
-        sheet_name=MONTHLY_SHEET,
-        header=None
-    )
+raw = pd.read_excel(
+    monthly_url,
+    sheet_name=MONTHLY_SHEET,
+    header=None
+)
 
-    headers = raw.iloc[1].fillna("").astype(str)
+print("\n===== RAW MONTHLY REPORT =====")
+print(raw.head(10).to_string())
 
-    df = raw.iloc[2:].copy()
+headers = raw.iloc[1].fillna("").astype(str)
 
-    df.columns = headers
+df = raw.iloc[2:].copy()
 
-    df = df.fillna(0)
+df.columns = headers
 
-    ip_col = df.columns[1]
+df = df.fillna(0)
 
-    indicator_cols = []
+print("\n===== DETECTED COLUMNS =====")
+for c in df.columns:
+    print(repr(c))
 
-    for col in df.columns[2:]:
+ip_col = df.columns[1]
 
-        col_name = str(col).strip()
-
-        if not col_name:
-            continue
-
-        if "comment" in col_name.lower():
-            continue
-
-        indicator_cols.append(col)
-
-    for col in indicator_cols:
-
-        df[col] = pd.to_numeric(
-            df[col],
-            errors="coerce"
-        ).fillna(0)
-
-    print("\n===== GROUPBY COLUMN =====")
+print("\n===== GROUPBY COLUMN =====")
 print(ip_col)
+
+indicator_cols = []
+
+for col in df.columns[2:]:
+
+    col_name = str(col).strip()
+
+    if not col_name:
+        continue
+
+    if "comment" in col_name.lower():
+        continue
+
+    indicator_cols.append(col)
+
+for col in indicator_cols:
+
+    df[col] = pd.to_numeric(
+        df[col],
+        errors="coerce"
+    ).fillna(0)
 
 print("\n===== RAW MONTHLY IPS =====")
 print(df[ip_col].dropna().unique())
 
 print("\n===== DATAFRAME SHAPE =====")
 print(df.shape)
-    outputs = (
-        df
-        .groupby(ip_col)[indicator_cols]
-        .sum()
-        .reset_index()
+
+outputs = (
+    df
+    .groupby(ip_col)[indicator_cols]
+    .sum()
+    .reset_index()
+)
+
+print("\n===== OUTPUTS SHAPE =====")
+print(outputs.shape)
+
+print("\n===== OUTPUT IPS =====")
+for ip in outputs.iloc[:, 0].tolist():
+    print(ip)
+
+outputs.rename(
+    columns={ip_col: "IP Name"},
+    inplace=True
+)
+
+outputs["IP Name"] = outputs["IP Name"].map(
+    lambda x: ip_mapping.get(
+        str(x).strip(),
+        str(x).strip()
     )
+)
 
-    outputs.rename(
-        columns={ip_col: "IP Name"},
-        inplace=True
-    )
+outputs.rename(
+    columns=indicator_mapping,
+    inplace=True
+)
 
-    outputs["IP Name"] = outputs["IP Name"].map(
-        lambda x: ip_mapping.get(
-            str(x).strip(),
-            str(x).strip()
-        )
-    )
+outputs["Criteria"] = "Outputs"
 
-    outputs.rename(
-        columns=indicator_mapping,
-        inplace=True
-    )
+return outputs
+```
 
-    outputs["Criteria"] = "Outputs"
-
-    return outputs
 
 
 # =====================================
