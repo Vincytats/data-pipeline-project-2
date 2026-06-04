@@ -167,36 +167,42 @@ def load_mappings(workbook_name):
         header=None
     )
 
+    print("MAPPING SHAPE:", mapping_df.shape)
+    print("COLUMNS:", mapping_df.columns.tolist())
+    print(mapping_df.head(30).to_string())
+
     ip_mapping = {}
 
     for _, row in mapping_df.iloc[3:50].iterrows():
 
-        source = row[2]
-        target = row[3]
+        try:
+            source = row.iloc[2]
+            target = row.iloc[3]
 
-        if pd.notna(source) and pd.notna(target):
+            if pd.notna(source) and pd.notna(target):
+                ip_mapping[str(source).strip()] = str(target).strip()
 
-            ip_mapping[
-                str(source).strip()
-            ] = str(target).strip()
+        except Exception:
+            pass
 
     indicator_mapping = {}
 
     for _, row in mapping_df.iloc[3:50].iterrows():
 
-        source = row[8]
-        target = row[9]
+        try:
+            source = row.iloc[7]
+            target = row.iloc[8]
 
-        if pd.notna(source) and pd.notna(target):
+            if pd.notna(source) and pd.notna(target):
+                indicator_mapping[str(source).strip()] = str(target).strip()
 
-            indicator_mapping[
-                str(source).strip()
-            ] = str(target).strip()
+        except Exception:
+            pass
+
+    print("IP MAPPINGS:", len(ip_mapping))
+    print("INDICATOR MAPPINGS:", len(indicator_mapping))
 
     return ip_mapping, indicator_mapping
-    print(mapping_df.head(30).to_string())
-
-
 # =====================================
 # MONTHLY REPORT
 # =====================================
