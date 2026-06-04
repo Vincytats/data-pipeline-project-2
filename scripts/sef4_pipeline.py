@@ -252,19 +252,27 @@ def build_outputs(ip_mapping, indicator_mapping):
         ).fillna(0)
 
     print("\n===== GROUPBY COLUMN =====")
-print(ip_col)
+    print(ip_col)
 
-print("\n===== RAW MONTHLY IPS =====")
-print(df[ip_col].dropna().unique())
+    print("\n===== RAW MONTHLY IPS =====")
+    print(df[ip_col].dropna().unique())
 
-print("\n===== DATAFRAME SHAPE =====")
-print(df.shape)
+    print("\n===== DATAFRAME SHAPE =====")
+    print(df.shape)
+
     outputs = (
         df
         .groupby(ip_col)[indicator_cols]
         .sum()
         .reset_index()
     )
+
+    print("\n===== OUTPUTS SHAPE =====")
+    print(outputs.shape)
+
+    print("\n===== OUTPUT IPS =====")
+    for ip in outputs.iloc[:, 0].tolist():
+        print(ip)
 
     outputs.rename(
         columns={ip_col: "IP Name"},
@@ -286,7 +294,6 @@ print(df.shape)
     outputs["Criteria"] = "Outputs"
 
     return outputs
-
 
 # =====================================
 # UPDATE WORKBOOK
