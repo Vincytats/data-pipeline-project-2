@@ -216,33 +216,43 @@ def build_outputs(ip_mapping, indicator_mapping):
 
     raw = pd.read_excel(
         monthly_url,
-        sheet_name=MONTHLY_SHEET,
+        sheet_name="Monthly reporting",
         header=None
     )
 
+    # Row 2 contains real headers
     headers = raw.iloc[1].fillna("").astype(str)
 
     df = raw.iloc[2:].copy()
-
     df.columns = headers
 
-    df = df.fillna(0)
+    # Remove completely blank rows
+    df = df.dropna(how="all")
 
+    # Column B = IP Name
     ip_col = df.columns[1]
+
+    print(f"IP Column = {ip_col}")
 
     indicator_cols = []
 
-    for col in df.columns[2:]:
+    for col in df.columns:
 
         col_name = str(col).strip()
 
-        if not col_name:
+        if col == ip_col:
+            continue
+
+        if col_name.lower() == "month":
             continue
 
         if "comment" in col_name.lower():
             continue
 
         indicator_cols.append(col)
+
+    print("Indicators found:")
+    print(indicator_cols)
 
     for col in indicator_cols:
 
@@ -251,40 +261,21 @@ def build_outputs(ip_mapping, indicator_mapping):
             errors="coerce"
         ).fillna(0)
 
-    print("\n===== GROUPBY COLUMN =====")
-    print(ip_col)
-
-    print("\n===== RAW MONTHLY IPS =====")
-    print(df[ip_col].dropna().unique())
-
-    print("\n===== DATAFRAME SHAPE =====")
-    print(df.shape)
-
     outputs = (
         df
-        .groupby(ip_col)[indicator_cols]
+        .groupby(ip_col, dropna=True)[indicator_cols]
         .sum()
         .reset_index()
     )
-
-    print("\n===== OUTPUTS SHAPE =====")
-    print(outputs.shape)
-
-    print("\n===== OUTPUT IPS =====")
-    for ip in outputs.iloc[:, 0].tolist():
-        print(ip)
 
     outputs.rename(
         columns={ip_col: "IP Name"},
         inplace=True
     )
 
-    outputs["IP Name"] = outputs["IP Name"].map(
-        lambda x: ip_mapping.get(
-            str(x).strip(),
-            str(x).strip()
-        )
-    )
+    outputs["IP Name"] = outputs["IP Name"].astype(str).str.strip()
+
+    outputs["IP Name"] = outputs["IP Name"].replace(ip_mapping)
 
     outputs.rename(
         columns=indicator_mapping,
@@ -292,6 +283,12 @@ def build_outputs(ip_mapping, indicator_mapping):
     )
 
     outputs["Criteria"] = "Outputs"
+
+    print("\nOUTPUT ORGANISATIONS")
+    print(outputs["IP Name"].tolist())
+
+    print("\nOUTPUT SHAPE")
+    print(outputs.shape)
 
     return outputs
 
