@@ -298,40 +298,72 @@ def build_outputs(ip_mapping, indicator_mapping):
 # =====================================
 # UPDATE WORKBOOK
 # =====================================
+def update_workbook(workbook_name, outputs):
 
-for _, row in outputs.iterrows():
+    sheet1 = pd.read_excel(
+        workbook_name,
+        sheet_name="Sheet1"
+    )
 
-    ip_name = row["IP Name"]
+    sheet1.columns = (
+        sheet1.columns.astype(str)
+        .str.strip()
+    )
 
-    print(f"\nLooking for: [{ip_name}]")
+    outputs_mask = (
+        sheet1["Criteria"]
+        .astype(str)
+        .str.strip()
+        .eq("Outputs")
+    )
 
-    target_rows = sheet1[
-        outputs_mask &
-        (
-            sheet1["IP Name"]
-            .astype(str)
-            .str.strip()
-            .str.upper()
-            .eq(str(ip_name).strip().upper())
-        )
-    ].index
+    for _, row in outputs.iterrows():
 
-    if len(target_rows) == 0:
-        print(f"❌ NO MATCH FOUND: {ip_name}")
-        continue
+        ip_name = row["IP Name"]
 
-    print(f"✅ MATCH FOUND: {ip_name}")
+        print(f"\nLooking for: [{ip_name}]")
 
-    idx = target_rows[0]
+        target_rows = sheet1[
+            outputs_mask &
+            (
+                sheet1["IP Name"]
+                .astype(str)
+                .str.strip()
+                .str.upper()
+                .eq(str(ip_name).strip().upper())
+            )
+        ].index
 
-    for col in outputs.columns:
-
-        if col in ["IP Name", "Criteria"]:
+        if len(target_rows) == 0:
+            print(f"❌ NO MATCH FOUND: {ip_name}")
             continue
 
-        if col in sheet1.columns:
-            sheet1.loc[idx, col] = row[col]
+        print(f"✅ MATCH FOUND: {ip_name}")
 
+        idx = target_rows[0]
+
+        for col in outputs.columns:
+
+            if col in ["IP Name", "Criteria"]:
+                continue
+
+            if col in sheet1.columns:
+                sheet1.loc[idx, col] = row[col]
+
+    with pd.ExcelWriter(
+        workbook_name,
+        engine="openpyxl",
+        mode="a",
+        if_sheet_exists="replace"
+    ) as writer:
+
+        sheet1.to_excel(
+            writer,
+            sheet_name="Sheet1",
+            index=False
+        )
+
+    print("✅ Workbook updated")
 # =====================================
 # MAIN
 # =====================================
