@@ -251,6 +251,14 @@ def build_outputs(ip_mapping, indicator_mapping):
             errors="coerce"
         ).fillna(0)
 
+    print("\n===== GROUPBY COLUMN =====")
+print(ip_col)
+
+print("\n===== RAW MONTHLY IPS =====")
+print(df[ip_col].dropna().unique())
+
+print("\n===== DATAFRAME SHAPE =====")
+print(df.shape)
     outputs = (
         df
         .groupby(ip_col)[indicator_cols]
