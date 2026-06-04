@@ -115,15 +115,13 @@ download_url = (
     f"/items/{file_id}/content"
 )
 
-    r = requests.get(download_url, headers=headers)
-    r.raise_for_status()
+r = requests.get(download_url, headers=headers)
+r.raise_for_status()
 
-    with open(filename, "wb") as f:
-        f.write(r.content)
+with open(filename, "wb") as f:
+    f.write(r.content)
 
-    print(f"✅ Downloaded {filename}")
-
-
+print(f"✅ Downloaded {filename}")
 # =====================================
 # UPLOAD WORKBOOK
 # =====================================
