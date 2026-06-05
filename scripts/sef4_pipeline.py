@@ -153,39 +153,69 @@ def upload_to_sharepoint(filename):
     res.raise_for_status()
 
     print("✅ Uploaded workbook")
-
-
 # =====================================
 # LOAD MAPPINGS
 # =====================================
 
-indicator_mapping = {}
+def load_mappings(workbook_name):
 
-for _, row in mapping_df.iloc[3:50].iterrows():
+    mapping_df = pd.read_excel(
+        workbook_name,
+        sheet_name="variables to be changed",
+        header=None
+    )
 
-    try:
+    print("MAPPING SHAPE:", mapping_df.shape)
 
-        source = row.iloc[7]
-        target = row.iloc[8]
+    ip_mapping = {}
 
-        if pd.notna(source) and pd.notna(target):
+    for _, row in mapping_df.iloc[3:50].iterrows():
 
-            source = (
-                str(source)
-                .replace("\n", " ")
-                .strip()
-            )
+        try:
 
-            target = (
-                str(target)
-                .replace("\n", " ")
-                .strip()
-            )
+            source = row.iloc[2]
+            target = row.iloc[3]
 
-            indicator_mapping[source] = target
+            if pd.notna(source) and pd.notna(target):
+                ip_mapping[
+                    str(source).strip()
+                ] = str(target).strip()
 
-    except Exception:
-        pass
+        except Exception:
+            pass
+
+    indicator_mapping = {}
+
+    for _, row in mapping_df.iloc[3:50].iterrows():
+
+        try:
+
+            source = row.iloc[7]
+            target = row.iloc[8]
+
+            if pd.notna(source) and pd.notna(target):
+
+                source = (
+                    str(source)
+                    .replace("\n", " ")
+                    .strip()
+                )
+
+                target = (
+                    str(target)
+                    .replace("\n", " ")
+                    .strip()
+                )
+
+                indicator_mapping[source] = target
+
+        except Exception:
+            pass
+
+    print("IP MAPPINGS:", len(ip_mapping))
+    print("INDICATOR MAPPINGS:", len(indicator_mapping))
+
+    return ip_mapping, indicator_mapping
 # =====================================
 # MONTHLY REPORT
 # =====================================
