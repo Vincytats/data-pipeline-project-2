@@ -159,50 +159,33 @@ def upload_to_sharepoint(filename):
 # LOAD MAPPINGS
 # =====================================
 
-def load_mappings(workbook_name):
+indicator_mapping = {}
 
-    mapping_df = pd.read_excel(
-        workbook_name,
-        sheet_name="variables to be changed",
-        header=None
-    )
+for _, row in mapping_df.iloc[3:50].iterrows():
 
-    print("MAPPING SHAPE:", mapping_df.shape)
-    print("COLUMNS:", mapping_df.columns.tolist())
-    print(mapping_df.head(30).to_string())
+    try:
 
-    ip_mapping = {}
+        source = row.iloc[7]
+        target = row.iloc[8]
 
-    for _, row in mapping_df.iloc[3:50].iterrows():
+        if pd.notna(source) and pd.notna(target):
 
-        try:
-            source = row.iloc[2]
-            target = row.iloc[3]
+            source = (
+                str(source)
+                .replace("\n", " ")
+                .strip()
+            )
 
-            if pd.notna(source) and pd.notna(target):
-                ip_mapping[str(source).strip()] = str(target).strip()
+            target = (
+                str(target)
+                .replace("\n", " ")
+                .strip()
+            )
 
-        except Exception:
-            pass
+            indicator_mapping[source] = target
 
-    indicator_mapping = {}
-
-    for _, row in mapping_df.iloc[3:50].iterrows():
-
-        try:
-            source = row.iloc[7]
-            target = row.iloc[8]
-
-            if pd.notna(source) and pd.notna(target):
-                indicator_mapping[str(source).strip()] = str(target).strip()
-
-        except Exception:
-            pass
-
-    print("IP MAPPINGS:", len(ip_mapping))
-    print("INDICATOR MAPPINGS:", len(indicator_mapping))
-
-    return ip_mapping, indicator_mapping
+    except Exception:
+        pass
 # =====================================
 # MONTHLY REPORT
 # =====================================
@@ -220,40 +203,70 @@ def build_outputs(ip_mapping, indicator_mapping):
         header=None
     )
 
-    # Row 2 contains real headers
-    headers = raw.iloc[1].fillna("").astype(str)
+    # Row 2 contains actual indicator names
+    headers = (
+        raw.iloc[1]
+        .fillna("")
+        .astype(str)
+        .str.replace("\n", " ", regex=False)
+        .str.strip()
+    )
 
     df = raw.iloc[2:].copy()
     df.columns = headers
 
-    # Remove completely blank rows
+    # Remove empty rows
     df = df.dropna(how="all")
 
-    # Column B = IP Name
+    # Column B = ADC / Organisation
     ip_col = df.columns[1]
 
-    print(f"IP Column = {ip_col}")
+    print(f"\nIP Column Found: {ip_col}")
 
+    # Clean column names
+    df.columns = [
+        str(c).replace("\n", " ").strip()
+        for c in df.columns
+    ]
+
+    # Clean mapping keys
+    valid_indicators = {
+        str(k).replace("\n", " ").strip()
+        for k in indicator_mapping.keys()
+    }
+
+    # ONLY KEEP THE 21 INDICATORS FROM MAPPING FILE
     indicator_cols = []
 
     for col in df.columns:
 
-        col_name = str(col).strip()
+        clean_col = str(col).strip()
 
-        if col == ip_col:
-            continue
+        if clean_col in valid_indicators:
+            indicator_cols.append(col)
 
-        if col_name.lower() == "month":
-            continue
+    print("\n===== INDICATORS USED =====")
 
-        if "comment" in col_name.lower():
-            continue
+    for col in indicator_cols:
+        print(col)
 
-        indicator_cols.append(col)
+    print(
+        f"\nTotal indicators found: "
+        f"{len(indicator_cols)}"
+    )
 
-    print("Indicators found:")
-    print(indicator_cols)
+    print("\n===== INDICATORS NOT FOUND =====")
 
+    for indicator in valid_indicators:
+
+        if indicator not in [
+            str(c).strip()
+            for c in indicator_cols
+        ]:
+
+            print(f"❌ {indicator}")
+
+    # Convert indicators to numeric
     for col in indicator_cols:
 
         df[col] = pd.to_numeric(
@@ -261,6 +274,7 @@ def build_outputs(ip_mapping, indicator_mapping):
             errors="coerce"
         ).fillna(0)
 
+    # Aggregate by organisation
     outputs = (
         df
         .groupby(ip_col, dropna=True)[indicator_cols]
@@ -273,10 +287,19 @@ def build_outputs(ip_mapping, indicator_mapping):
         inplace=True
     )
 
-    outputs["IP Name"] = outputs["IP Name"].astype(str).str.strip()
+    outputs["IP Name"] = (
+        outputs["IP Name"]
+        .astype(str)
+        .str.strip()
+    )
 
-    outputs["IP Name"] = outputs["IP Name"].replace(ip_mapping)
+    # Apply organisation mapping
+    outputs["IP Name"] = (
+        outputs["IP Name"]
+        .replace(ip_mapping)
+    )
 
+    # Rename indicators to expected output names
     outputs.rename(
         columns=indicator_mapping,
         inplace=True
@@ -284,14 +307,13 @@ def build_outputs(ip_mapping, indicator_mapping):
 
     outputs["Criteria"] = "Outputs"
 
-    print("\nOUTPUT ORGANISATIONS")
+    print("\n===== OUTPUT ORGANISATIONS =====")
     print(outputs["IP Name"].tolist())
 
-    print("\nOUTPUT SHAPE")
+    print("\n===== OUTPUT SHAPE =====")
     print(outputs.shape)
 
     return outputs
-
 # =====================================
 # UPDATE WORKBOOK
 # =====================================
