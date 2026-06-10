@@ -708,3 +708,8 @@ def run_pipeline():
     print(
         "SEF4 Monitoring Pipeline Complete"
     )
+if __name__ == "__main__":
+
+    print("SCRIPT EXECUTION STARTED")
+
+    run_pipeline()
