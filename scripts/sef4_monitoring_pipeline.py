@@ -13,7 +13,7 @@ CLIENT_SECRET = os.getenv("AZURE_CLIENT_SECRET")
 SHAREPOINT_SITE = "thelearningtrust.sharepoint.com"
 SITE_PATH = "/sites/TheLearningTrust"
 
-WORKBOOK_NAME = "SEF 4 Midline Stats Analysis.xlsx"
+WORKBOOK_NAME = "SEF 4 Monthly Stats Analysis.xlsx"
 
 MONTHLY_REPORT_ID = "1itWYfUTkxA3g1qJThcaQ9XmgkOzOrngMgqjNSess20A"
 MONTHLY_SHEET = "Monthly reporting"
