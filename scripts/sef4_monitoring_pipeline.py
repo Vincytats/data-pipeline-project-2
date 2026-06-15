@@ -2,6 +2,10 @@ import os
 import requests
 import pandas as pd
 
+from datetime import datetime
+from openpyxl import load_workbook
+from openpyxl.styles import PatternFill
+from openpyxl.formatting.rule import CellIsRule
 # =====================================
 # CONFIG
 # =====================================
@@ -478,17 +482,28 @@ def build_monitoring_outputs(
     # VARIANCE
     # ==========================
 
-    month_order = [
-        "November",
-        "December",
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June",
-        "July"
+month_order = [
+    "November",
+    "December",
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July"
+]
+
+current_month = datetime.now().strftime("%B")
+
+if current_month in month_order:
+    valid_months = month_order[
+        :month_order.index(current_month) + 1
     ]
+else:
+    valid_months = month_order
+
+df = df[df[month_col].isin(valid_months)]
 
     outputs_monthly["Month"] = pd.Categorical(
         outputs_monthly["Month"],
@@ -606,13 +621,100 @@ def build_monitoring_outputs(
         ] != "Normal"
     ].copy()
 
-    return (
-        outputs_cumulative,
-        outputs_monthly,
-        outputs_variance,
-        quality_checks,
-        raw_historical
+    variance_heatmap = build_variance_heatmap(
+    outputs_variance
+)
+
+top_increases, top_decreases = (
+    build_executive_summary(
+        outputs_variance
     )
+)
+
+return (
+    outputs_cumulative,
+    outputs_monthly,
+    outputs_variance,
+    quality_checks,
+    raw_historical,
+    variance_heatmap,
+    top_increases,
+    top_decreases
+)
+# ==========================
+# OUTPUT 6
+# heatmap dataset
+# ==========================
+def build_variance_heatmap(outputs_variance):
+
+    heatmap = (
+        outputs_variance
+        .pivot_table(
+            index=["IP Name","Indicator"],
+            columns="Month",
+            values="Percent Change",
+            aggfunc="sum"
+        )
+        .fillna(0)
+        .reset_index()
+    )
+
+    month_cols = [
+        c for c in heatmap.columns
+        if c not in ["IP Name","Indicator"]
+    ]
+
+    heatmap["Grand Total"] = (
+        heatmap[month_cols]
+        .sum(axis=1)
+    )
+
+    return heatmap
+def build_ip_heatmap(outputs_variance):
+
+    heatmap = (
+        outputs_variance
+        .pivot_table(
+            index="IP Name",
+            columns="Month",
+            values="Percent Change",
+            aggfunc="sum"
+        )
+        .fillna(0)
+        .reset_index()
+    )
+
+    month_cols = [
+        c for c in heatmap.columns
+        if c != "IP Name"
+    ]
+
+    heatmap["Grand Total"] = (
+        heatmap[month_cols]
+        .sum(axis=1)
+    )
+
+    return heatmap
+# =====================================
+# executive summary
+# =====================================
+def build_executive_summary(outputs_variance):
+
+    summary = (
+        outputs_variance
+        .sort_values(
+            "Percent Change",
+            ascending=False
+        )
+        .copy()
+    )
+
+    top_increases = summary.head(20)
+
+    top_decreases = summary.tail(20)
+
+    return top_increases, top_decreases
+
 # =====================================
 # UPDATE WORKBOOK
 # =====================================
@@ -622,7 +724,10 @@ def update_monitoring_workbook(
     outputs_monthly,
     outputs_variance,
     quality_checks,
-    raw_historical
+    raw_historical,
+    variance_heatmap,
+    top_increases,
+    top_decreases
 ):
 
     with pd.ExcelWriter(
