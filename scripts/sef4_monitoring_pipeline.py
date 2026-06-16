@@ -747,7 +747,7 @@ def update_monitoring_workbook(
             sheet_name="Raw_Historical_Data",
             index=False
         )
-                variance_heatmap.to_excel(
+        variance_heatmap.to_excel(
             writer,
             sheet_name="Variance_Heatmap",
             index=False
