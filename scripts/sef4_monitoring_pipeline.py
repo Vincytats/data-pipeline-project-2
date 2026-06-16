@@ -818,7 +818,7 @@ def run_pipeline():
         WORKBOOK_NAME
     )
 
-   (
+    (
     outputs_cumulative,
     outputs_monthly,
     outputs_variance,
