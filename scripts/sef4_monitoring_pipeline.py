@@ -599,11 +599,11 @@ variance_heatmap = build_variance_heatmap(
     outputs_variance
     )
 
-    ip_heatmap = build_ip_heatmap(
+ip_heatmap = build_ip_heatmap(
         outputs_variance
     )
 
-    top_increases, top_decreases = (
+ top_increases, top_decreases = (
         build_executive_summary(
             outputs_variance
         )
