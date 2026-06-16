@@ -482,28 +482,30 @@ def build_monitoring_outputs(
     # VARIANCE
     # ==========================
 
-month_order = [
-    "November",
-    "December",
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July"
-]
-
-current_month = datetime.now().strftime("%B")
-
-if current_month in month_order:
-    valid_months = month_order[
-        :month_order.index(current_month) + 1
+    month_order = [
+        "November",
+        "December",
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July"
     ]
-else:
-    valid_months = month_order
 
-df = df[df[month_col].isin(valid_months)]
+    current_month = datetime.now().strftime("%B")
+
+    if current_month in month_order:
+
+        valid_months = month_order[
+            :month_order.index(current_month) + 1
+        ]
+
+        outputs_monthly = outputs_monthly[
+            outputs_monthly["Month"]
+            .isin(valid_months)
+        ]
 
     outputs_monthly["Month"] = pd.Categorical(
         outputs_monthly["Month"],
@@ -526,14 +528,10 @@ df = df[df[month_col].isin(valid_months)]
         ]
     ]
 
-    for ip in outputs_monthly[
-        "IP Name"
-    ].unique():
+    for ip in outputs_monthly["IP Name"].unique():
 
         ip_data = outputs_monthly[
-            outputs_monthly[
-                "IP Name"
-            ] == ip
+            outputs_monthly["IP Name"] == ip
         ]
 
         for indicator in indicators:
@@ -546,61 +544,38 @@ df = df[df[month_col].isin(valid_months)]
 
                 if previous is not None:
 
-                    change = (
-                        current -
-                        previous
-                    )
+                    change = current - previous
 
                     if previous == 0:
-
                         pct_change = None
-
                     else:
-
                         pct_change = (
-                            change /
-                            previous
+                            change / previous
                         ) * 100
 
                     status = "Normal"
 
                     if pct_change is not None:
 
-                        if abs(
-                            pct_change
-                        ) >= 100:
-
+                        if abs(pct_change) >= 100:
                             status = "Critical"
 
-                        elif abs(
-                            pct_change
-                        ) >= 50:
-
+                        elif abs(pct_change) >= 50:
                             status = "Review"
 
-                        elif abs(
-                            pct_change
-                        ) >= 25:
-
+                        elif abs(pct_change) >= 25:
                             status = "Monitor"
 
                     variance_rows.append(
                         {
                             "IP Name": ip,
-                            "Month":
-                                row["Month"],
-                            "Indicator":
-                                indicator,
-                            "Previous":
-                                previous,
-                            "Current":
-                                current,
-                            "Change":
-                                change,
-                            "Percent Change":
-                                pct_change,
-                            "Status":
-                                status
+                            "Month": row["Month"],
+                            "Indicator": indicator,
+                            "Previous": previous,
+                            "Current": current,
+                            "Change": change,
+                            "Percent Change": pct_change,
+                            "Status": status
                         }
                     )
 
@@ -609,38 +584,43 @@ df = df[df[month_col].isin(valid_months)]
     outputs_variance = pd.DataFrame(
         variance_rows
     )
+    
+# ==========================
+# OUTPUT 5
+# QUALITY CHECKS
+# ==========================
 
-    # ==========================
-    # OUTPUT 5
-    # QUALITY CHECKS
-    # ==========================
 
-    quality_checks = outputs_variance[
-        outputs_variance[
-            "Status"
-        ] != "Normal"
-    ].copy()
+quality_checks = outputs_variance[
+outputs_variance["Status"] != "Normal"
+].copy()
 
     variance_heatmap = build_variance_heatmap(
-    outputs_variance
-)
-
-top_increases, top_decreases = (
-    build_executive_summary(
         outputs_variance
     )
-)
 
-return (
-    outputs_cumulative,
-    outputs_monthly,
-    outputs_variance,
-    quality_checks,
-    raw_historical,
-    variance_heatmap,
-    top_increases,
-    top_decreases
-)
+    ip_heatmap = build_ip_heatmap(
+        outputs_variance
+    )
+
+    top_increases, top_decreases = (
+        build_executive_summary(
+            outputs_variance
+        )
+    )
+
+    return (
+        outputs_cumulative,
+        outputs_monthly,
+        outputs_variance,
+        quality_checks,
+        raw_historical,
+        variance_heatmap,
+        ip_heatmap,
+        top_increases,
+        top_decreases
+    )
+
 # ==========================
 # OUTPUT 6
 # heatmap dataset
@@ -726,6 +706,7 @@ def update_monitoring_workbook(
     quality_checks,
     raw_historical,
     variance_heatmap,
+    ip_heatmap,
     top_increases,
     top_decreases
 ):
@@ -766,7 +747,58 @@ def update_monitoring_workbook(
             sheet_name="Raw_Historical_Data",
             index=False
         )
+                variance_heatmap.to_excel(
+            writer,
+            sheet_name="Variance_Heatmap",
+            index=False
+        )
 
+        ip_heatmap.to_excel(
+            writer,
+            sheet_name="IP_Heatmap",
+            index=False
+        )
+
+        top_increases.to_excel(
+            writer,
+            sheet_name="Top_Increases",
+            index=False
+        )
+
+        top_decreases.to_excel(
+            writer,
+            sheet_name="Top_Decreases",
+            index=False
+        )
+    wb = load_workbook(workbook_name)
+
+    ws = wb["Variance_Heatmap"]
+
+    red_fill = PatternFill(
+        start_color="FF0000",
+        end_color="FF0000",
+        fill_type="solid"
+    )
+
+    ws.conditional_formatting.add(
+        "C2:Z5000",
+        CellIsRule(
+            operator="greaterThan",
+            formula=["100"],
+            fill=red_fill
+        )
+    )
+
+    ws.conditional_formatting.add(
+        "C2:Z5000",
+        CellIsRule(
+            operator="lessThan",
+            formula=["-100"],
+            fill=red_fill
+        )
+    )
+
+    wb.save(workbook_name)
     print(
         "Monitoring workbook updated"
     )
@@ -786,25 +818,33 @@ def run_pipeline():
         WORKBOOK_NAME
     )
 
-    (
-        outputs_cumulative,
-        outputs_monthly,
-        outputs_variance,
-        quality_checks,
-        raw_historical
+   (
+    outputs_cumulative,
+    outputs_monthly,
+    outputs_variance,
+    quality_checks,
+    raw_historical,
+    variance_heatmap,
+    ip_heatmap,
+    top_increases,
+    top_decreases
     ) = build_monitoring_outputs(
         ip_mapping,
         indicator_mapping
     )
 
     update_monitoring_workbook(
-        WORKBOOK_NAME,
-        outputs_cumulative,
-        outputs_monthly,
-        outputs_variance,
-        quality_checks,
-        raw_historical
-    )
+    WORKBOOK_NAME,
+    outputs_cumulative,
+    outputs_monthly,
+    outputs_variance,
+    quality_checks,
+    raw_historical,
+    variance_heatmap,
+    ip_heatmap,
+    top_increases,
+    top_decreases
+)
 
     upload_to_sharepoint(
         WORKBOOK_NAME
