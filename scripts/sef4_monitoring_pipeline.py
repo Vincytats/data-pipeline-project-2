@@ -591,19 +591,19 @@ def build_monitoring_outputs(
 # ==========================
 
 
-quality_checks = outputs_variance[
-outputs_variance["Status"] != "Normal"
-].copy()
+    quality_checks = outputs_variance[
+        outputs_variance["Status"] != "Normal"
+    ].copy()
 
-variance_heatmap = build_variance_heatmap(
-    outputs_variance
-    )
-
-ip_heatmap = build_ip_heatmap(
+    variance_heatmap = build_variance_heatmap(
         outputs_variance
     )
 
- top_increases, top_decreases = (
+    ip_heatmap = build_ip_heatmap(
+        outputs_variance
+    )
+
+    top_increases, top_decreases = (
         build_executive_summary(
             outputs_variance
         )
