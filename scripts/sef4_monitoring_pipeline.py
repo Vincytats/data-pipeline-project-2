@@ -595,8 +595,8 @@ quality_checks = outputs_variance[
 outputs_variance["Status"] != "Normal"
 ].copy()
 
-    variance_heatmap = build_variance_heatmap(
-        outputs_variance
+variance_heatmap = build_variance_heatmap(
+    outputs_variance
     )
 
     ip_heatmap = build_ip_heatmap(
